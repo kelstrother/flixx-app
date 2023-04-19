@@ -33,9 +33,7 @@ async function displayPopularMovies() {
             <h5 class="card-title">${movie.title}</h5>
             <p class="card-text">
             <i class="fas fa-star text-primary"></i> 
-              <small class="text-muted">${
-                movie.vote_average.toFixed(1)
-              }</small>
+              <small class="text-muted">${movie.vote_average.toFixed(1)}</small>
                 </p>
           </div>
     `;
@@ -84,13 +82,13 @@ async function displayPopularShows() {
 //!   DISPLAYING MOVIE DETAILS     //
 //~ ///////////////////////////
 async function displayMovieDetails() {
-  const movieID = window.location.search.split('=')[1];
+  const movieID = window.location.search.split("=")[1];
   const movie = await fetchAPIData(`movie/${movieID}`);
 
   //~ OVERLAY FOR BACKGROUND IMAGE
-  displayBackgroundImage('movie', movie.backdrop_path);
+  displayBackgroundImage("movie", movie.backdrop_path);
 
-  const div = document.createElement('div');
+  const div = document.createElement("div");
   div.innerHTML = `
         <div class="details-top">
           <div>
@@ -136,15 +134,18 @@ async function displayMovieDetails() {
             <li><span class="text-secondary">Revenue:</span> $${addCommasToNumber(
               movie.revenue
             )}</li>
-            <li><span class="text-secondary">Runtime:</span> ${movie.runtime} min</li>
+            <li><span class="text-secondary">Runtime:</span> ${
+              movie.runtime
+            } min</li>
             <li><span class="text-secondary">Status:</span>${movie.status}</li>
           </ul>
           <h4>Production Companies</h4>
-          <div class="list-group">${movie.production_companies.map((company) => `<p>${company.name}</p>`).join('')}</div>
+          <div class="list-group">${movie.production_companies
+            .map((company) => `<p>${company.name}</p>`)
+            .join("")}</div>
         </div>`;
 
-        document.querySelector('#movie-details').appendChild(div);
-  
+  document.querySelector("#movie-details").appendChild(div);
 }
 
 //~ ///////////////////////////
@@ -209,7 +210,9 @@ async function displayShowDetails() {
             <li><span class="text-secondary">Episodes:</span> ${
               show.number_of_episodes
             }</li>
-            <li><span class="text-secondary">Next Episode Release:</span> ${show.next_episode_to_air.air_date}</li>
+            <li><span class="text-secondary">Next Episode Release:</span> ${
+              show.next_episode_to_air.air_date
+            }</li>
             <li><span class="text-secondary">Status:</span> ${show.status}</li>
           </ul>
           <h4>Production Companies</h4>
@@ -222,7 +225,7 @@ async function displayShowDetails() {
 }
 //? DISPLAY BACKDROP ON DETAILS PAGES
 function displayBackgroundImage(type, backgroundPath) {
-  const overlayDiv = document.createElement('div');
+  const overlayDiv = document.createElement("div");
   overlayDiv.style.backgroundImage = `url(https://image.tmdb.org/t/p/original/${backgroundPath})`;
   overlayDiv.style.backgroundSize = "cover";
   overlayDiv.style.backgroundPosition = "center";
@@ -235,11 +238,54 @@ function displayBackgroundImage(type, backgroundPath) {
   overlayDiv.style.zIndex = "-1";
   overlayDiv.style.opacity = "0.15";
 
-  if (type === 'movie') {
-    document.querySelector('#movie-details').appendChild(overlayDiv)
+  if (type === "movie") {
+    document.querySelector("#movie-details").appendChild(overlayDiv);
   } else {
     document.querySelector("#show-details").appendChild(overlayDiv);
   }
+}
+
+//?   DISPLAY SLIDER MOVIES
+async function displaySlider() {
+  const { results } = await fetchAPIData("movie/now_playing");
+  results.forEach((movie) => {
+    const div = document.createElement("div");
+    div.classList.add("swiper-slide");
+    div.innerHTML = `
+            <a href="movie-details.html?id=${movie.id}">
+              <img src="https://image.tmdb.org/t/p/w500${movie.poster_path}" alt="${movie.title}" />
+            </a>
+            <h4 class="swiper-rating">
+              <i class="fas fa-star text-secondary"></i> ${movie.vote_average} / 10
+            </h4>
+         `;
+    document.querySelector(".swiper-wrapper").appendChild(div);
+
+    initSwiper();
+  });
+}
+function initSwiper() {
+  const swiper = new Swiper(".swiper", {
+    slidesPerView: 1,
+    spaceBetween: 30,
+    freeMode: true,
+    loop: true,
+    autoPlay: {
+      delay: 4000,
+      disableOnInteraction: false,
+    },
+    breakpoints: {
+      500: {
+        slidesPerView: 2,
+      },
+      700: {
+        slidesPerView: 3,
+      },
+      1200: {
+        slidesPerView: 4,
+      },
+    },
+  });
 }
 
 //? FETCH DATA FROM TMDB API
@@ -282,7 +328,7 @@ function highlightActiveLink() {
 //?   FUNCTION TO ADD COMMAS
 function addCommasToNumber(number) {
   //~ REGEX FORMULA TO ADD COMMA AFTER EVERY 3 NUMBERS
-  return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 //? INIT APP
@@ -291,6 +337,7 @@ function init() {
     case "/":
     case "/index.html":
       displayPopularMovies();
+      displaySlider();
       break;
     case "/shows.html":
       displayPopularShows();
@@ -299,7 +346,7 @@ function init() {
       displayMovieDetails();
       break;
     case "/tv-details.html":
-      displayShowDetails()
+      displayShowDetails();
       break;
     case "/search.html":
       console.log("Search");
