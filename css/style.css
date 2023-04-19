@@ -134,6 +134,12 @@ ul {
   padding: 10px;
   font-size: 20px;
 }
+.card-title {
+  margin-block-end: 1rem;
+}
+.card-text {
+  margin-block: .25rem;
+}
 
 .card:hover {
   transform: scale(1.05);
