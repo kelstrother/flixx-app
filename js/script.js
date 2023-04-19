@@ -8,6 +8,7 @@ const global = {
     type: "",
     page: 1,
     totalPages: 1,
+    totalResults: 0,
   },
   api: {
     apiKey: "8103b0d834c98dad40a89daa11894775",
@@ -254,24 +255,125 @@ function displayBackgroundImage(type, backgroundPath) {
     document.querySelector("#show-details").appendChild(overlayDiv);
   }
 }
-//?   SEARCH MOVIES/TV SHOWS
+//~ ////////////////////////////
+//!   SEARCH MOVIES/TV SHOWS  //
+//~ ////////////////////////////
 async function search() {
   const queryString = window.location.search;
   const urlParams = new URLSearchParams(queryString);
   global.search.type = urlParams.get("type");
   global.search.term = urlParams.get("search-term");
 
-  if (global.search.term !== '' && global.search.term !== null) {
+  if (global.search.term !== "" && global.search.term !== null) {
     //~ TODO - make request & display results
-    const results = await searchAPIData();
-    console.log(results);
+    const { results, total_pages, page, total_results } = await searchAPIData();
 
+    global.search.page = page;
+    global.search.totalPages = total_pages;
+    global.search.totalResults = total_results;
+
+    if (results.length === 0) {
+      showAlert("No results found");
+      return;
+    }
+    displaySearchResults(results);
+
+    document.querySelector("#search-term").value = "";
   } else {
-    showAlert('Please enter a search')
+    showAlert("Please enter a search");
   }
 }
+//~ ///////////////////////////
+//!   DISPLAY SEARCH RESULTS  //
+//~ //////////////////////////
+function displaySearchResults(results) {
+  //? CLEAR PREVIOUS RESULTS
+  document.querySelector('#search-results').innerHTML = '';
+  document.querySelector('#search-results-heading').innerHTML = '';
+  document.querySelector('#pagination').innerHTML = '';
+  results.forEach((result) => {
+    const div = document.createElement("div");
+    div.classList.add("card");
+    div.innerHTML = `
+          <a href="${global.search.type}-details.html?id=${result.id}">
+            ${
+              result.poster_path
+                ? `<img
+                  src="https://image.tmdb.org/t/p/w500${result.poster_path}"
+                  class="card-img-top"
+                  alt="${
+                    global.search.type === "movie" ? result.title : result.name
+                  }"
+                />`
+                : `<img
+                  src="images/no-image.jpg"
+                  class="card-img-top"
+                  alt="${
+                    global.search.type === "movie" ? result.title : result.name
+                  }"
+                />`
+            }
+          </a>
+          <div class="card-body">
+            <h5 class="card-title">${
+              global.search.type === "movie" ? result.title : result.name
+            }</h5>
+            <p class="card-text">
+            <i class="fas fa-star text-primary"></i> 
+              <small class="text-muted">${result.vote_average.toFixed(
+                1
+              )}</small>
+                </p>
+          </div>
+    `;
+    document.querySelector("#search-results-heading").innerHTML = `
+                <h2>${results.length} of ${global.search.totalResults} results for ${global.search.term}</h2>
+    `;
+    document.querySelector("#search-results").appendChild(div);
+  });
+  displayPagination();
+}
+//~ ////////////////////////////////////////////
+//!   CREATE & DISPLAY PAGINATION FOR SEARCH  //
+//~ ////////////////////////////////////////////
+function displayPagination() {
+  const div = document.createElement("div");
+  div.classList.add("pagination");
+  div.innerHTML = `
+          <button class="btn btn-primary" id="prev">Prev</button>
+          <button class="btn btn-primary" id="next">Next</button>
+          <div class='page-counter'>Page ${global.search.page} of ${global.search.totalPages}</div>
+  `;
+  document.querySelector("#pagination").appendChild(div);
 
-//?   DISPLAY SLIDER MOVIES
+  //? DISABLE PREV BUTTON IF ON FIRST PAGE
+  if(global.search.page === 1) {
+    document.querySelector('#prev').disabled = true;
+  }
+  
+  //? DISABLE NEXT BUTTON IF ON LAST PAGE
+  if(global.search.page === global.search.totalPages) {
+    document.querySelector('#next').disabled = true;
+  }
+  
+  //? NEXT PAGE
+  document.querySelector('#next').addEventListener('click', async () => {
+    global.search.page++;
+    const { results, total_pages } = await searchAPIData();
+    displaySearchResults(results);
+  })
+  //? PREVIOUS PAGE
+  document.querySelector('#prev').addEventListener('click', async () => {
+    global.search.page--;
+    const { results, total_pages } = await searchAPIData();
+    displaySearchResults(results);
+  })
+
+}
+
+//~ ////////////////////////////
+//!   DISPLAY SLIDER MOVIES  //
+//~ ////////////////////////////
 async function displaySlider() {
   const { results } = await fetchAPIData("movie/now_playing");
   results.forEach((movie) => {
@@ -313,25 +415,28 @@ function initSwiper() {
     },
   });
 }
-
-//? FETCH DATA FROM TMDB API
+//~ ////////////////////////////
+//!  FETCH DATA FROM TMDB API  //
+//~ ////////////////////////////
 async function fetchAPIData(endpoint) {
   const API_KEY = global.api.apiKey;
   const API_URL = global.api.apiUrl;
-  
+
   showSpinner();
-  
+
   const response = await fetch(
     `${API_URL}${endpoint}?api_key=${API_KEY}&language=en-US&region=US`
-    );
-    const data = await response.json();
-    
-    hideSpinner();
-    
-    return data;
-  }
-  
-  //? MAKE REQUEST TO SEARCH
+  );
+  const data = await response.json();
+
+  hideSpinner();
+
+  return data;
+}
+
+//~ ////////////////////////////
+//!  MAKE REQUEST TO SEARCH  //
+//~ ////////////////////////////
 async function searchAPIData() {
   const API_KEY = global.api.apiKey;
   const API_URL = global.api.apiUrl;
@@ -339,7 +444,7 @@ async function searchAPIData() {
   showSpinner();
 
   const response = await fetch(
-    `${API_URL}search/${global.search.type}?api_key=${API_KEY}&language=en-US&query=${global.search.term}`
+    `${API_URL}search/${global.search.type}?api_key=${API_KEY}&language=en-US&query=${global.search.term}&page=${global.search.page}`
   );
   const data = await response.json();
 
@@ -368,13 +473,13 @@ function highlightActiveLink() {
   });
 }
 //? SHOW ALERT
-function showAlert(message, className) {
-  const alertEl = document.createElement('div');
-  alertEl.classList.add('alert', className);
+function showAlert(message, className = "error") {
+  const alertEl = document.createElement("div");
+  alertEl.classList.add("alert", className);
   alertEl.appendChild(document.createTextNode(message));
-  document.querySelector('#alert').appendChild(alertEl);
+  document.querySelector("#alert").appendChild(alertEl);
 
-  setTimeout(() => alertEl.remove(), 3000)
+  setTimeout(() => alertEl.remove(), 3000);
 }
 
 //?   FUNCTION TO ADD COMMAS
